@@ -5,6 +5,7 @@ import logo from './logo.svg';
 
 function App() {
   const [meetCode, setMeetCode] = useState('');
+  const [error, setError] = useState(false);  // Error state to control visibility
 
   const handleCodeChange = (event) => {
     setMeetCode(event.target.value);
@@ -12,6 +13,13 @@ function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Check if meet code is exactly 10 characters long
+    if (meetCode.length !== 10) {
+      setError(true);  // Show error if invalid code
+      return;
+    }
+
     try {
       const response = await axios.post('/api/deploy-bot', { meetCode });
       console.log(response.data);
@@ -39,6 +47,11 @@ function App() {
             Deploy Bot
           </button>
         </form>
+        {error && (
+          <div className="error-message">
+            <p>Invalid meeting code! The meeting code must be 10 characters.</p>
+          </div>
+        )}
       </header>
     </div>
   );
