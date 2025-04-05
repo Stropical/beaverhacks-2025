@@ -13,6 +13,8 @@ import os
 import tempfile
 from dotenv import load_dotenv
 import logging
+from upload_and_webhook import upload_file_to_bucket, call_webhook
+import sys 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -82,9 +84,16 @@ class JoinGoogleMeet:
         try:
             code_input.click()
         except Exception as e:
-            # Attempt JavaScript click if normal click fails
-            self.driver.execute_script("arguments[0].click();", code_input)
-            logger.info("Used JavaScript to click code input")
+            # Dispatch a MouseEvent click to avoid scrolling
+            self.driver.execute_script("""
+                var evt = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                arguments[0].dispatchEvent(evt);
+            """, code_input)
+            logger.info("Used JavaScript MouseEvent to click code input without scrolling")
         time.sleep(1)
         code_input.clear()
         time.sleep(1)
@@ -112,16 +121,6 @@ class JoinGoogleMeet:
         )
         logger.info("Joined the meeting")
         time.sleep(3)
-        logger.info("Sending chat message")
-        self.sendChatMessage("Hello, good day everyone!")
-        
-        # Turn on captions
-        time.sleep(2)
-        for i in range(6): 
-            self.actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.6)
-        self.actions.send_keys(Keys.ENTER).perform()
-        logger.info("Turned on captions")
 
     def sendChatMessage(self, message):
         # Open chat with keyboard
@@ -142,19 +141,67 @@ class JoinGoogleMeet:
         self.actions.send_keys(Keys.ENTER).perform()
         logger.info("Closed chat box")
 
+    def monitorParticipants(self):
+        logger.info("Starting participants monitoring...")
+        while True:
+            try:
+                # Using provided CSS selector for displaying current participant count
+                participants_element = self.driver.find_element(By.CSS_SELECTOR, "#yDmH0d > c-wiz > div > div > div.TKU8Od > div.crqnQb > div > div:nth-child(8) > div > div > div.jsNRx > nav > div:nth-child(2) > div > div > div")
+                count_text = participants_element.text.strip()
+                if count_text and count_text.isdigit():
+                    count = int(count_text)
+                    logger.info(f"Detected {count} participants")
+                    if count <= 1:
+                        logger.info("Last person in call detected.")
+                        break
+                else:
+                    logger.info("Participant count text not found or not numeric.")
+            except Exception as e:
+                logger.error("Error detecting participants: " + str(e))
+            time.sleep(5)
+
 def main():
     logger.info("Starting main execution")
     temp_dir = tempfile.mkdtemp()
     audio_path = os.path.join(temp_dir, "output.wav")
-    # Get configuration from environment variables
     duration = int(os.getenv('RECORDING_DURATION', 60))
     
     obj = JoinGoogleMeet()
     obj.Glogin()
     obj.joinMeeting()
-    # Record audio after joining
-    AudioRecorder().get_audio(audio_path, duration)
-    logger.info("Recording completed")
+    # Start recording using AudioRecorder's start/stop methods (assumed to exist)
+    recorder = AudioRecorder()
+    recorder.start_recording(audio_path, duration)
+    logger.info("Recording started")
+    # Monitor participants until you're the last person in the call
+    obj.monitorParticipants()
+    recorder.stop_recording()
+    logger.info("Recording stopped because you're the last person in the call")
+    
+    
+    
+    # GOOGLE CLOUD STORAGE UPLOAD
+        # Fetch required configuration from environment variables
+    bucket_name = os.getenv('BUCKET_NAME')
+    webhook_url = os.getenv('WEBHOOK_URL')
+    
+    if not all([bucket_name, webhook_url, source_file_path]):
+        logger.error("Missing one or more required environment variables: BUCKET_NAME, WEBHOOK_URL, RECORDING_FILE_PATH")
+        exit(1)
+    
+    destination_blob_name = os.path.basename(audio_path)
+    
+    # Upload the file
+    upload_file_to_bucket(audio_path, bucket_name, destination_blob_name)
+    
+    # Call the webhook with basic payload information
+    payload = {
+        "file": destination_blob_name,
+        "bucket": bucket_name
+    }
+    call_webhook(webhook_url, payload)
+
+
 
 # call the main function
 if __name__ == "__main__":
