@@ -23,7 +23,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          <h1>Deploy Bot here</h1>
+          <h1>Deploy SCRIBE here</h1>
           <form onSubmit={handleSubmit}>
             <input
               type="text"
