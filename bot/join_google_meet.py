@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import logging
 from upload_and_webhook import upload_file_to_bucket, call_webhook
 import sys 
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -163,7 +164,12 @@ class JoinGoogleMeet:
 def main():
     logger.info("Starting main execution")
     temp_dir = tempfile.mkdtemp()
-    audio_path = os.path.join(temp_dir, "output.wav")
+    
+    # Generate name based on current time
+    current_time = datetime.now()
+    file_name = f"meeting_{current_time.strftime('%Y-%m-%d_%H-%M-%S')}.wav"
+    
+    audio_path = os.path.join(temp_dir, file_name)
     duration = int(os.getenv('RECORDING_DURATION', 60))
     
     obj = JoinGoogleMeet()
@@ -185,9 +191,9 @@ def main():
     bucket_name = os.getenv('BUCKET_NAME')
     webhook_url = os.getenv('WEBHOOK_URL')
     
-    if not all([bucket_name, webhook_url, source_file_path]):
-        logger.error("Missing one or more required environment variables: BUCKET_NAME, WEBHOOK_URL, RECORDING_FILE_PATH")
-        exit(1)
+    if not bucket_name or not webhook_url:
+        logger.error("Bucket name or webhook URL not set in environment variables.")
+        sys.exit(1)
     
     destination_blob_name = os.path.basename(audio_path)
     
