@@ -35,6 +35,21 @@
   }
 }
 
+/* NEW: Fade-up Animation */
+.fade-up {
+  animation: fadeUp 1s ease-in-out forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 .Project-title {
   animation-delay: 0.2s;
@@ -123,6 +138,7 @@
   outline: none;
 }
 
+/* Error Styling */
 .error-message {
   margin-top: 20px;
   padding: 10px;
@@ -133,4 +149,30 @@
   font-size: 1rem;
   opacity: 0;
   animation: fadeInError 1s forwards;
+}
+
+@keyframes fadeInError {
+  to {
+    opacity: 1;
+  }
+}
+
+.popup-message {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 1rem;
+  animation: fadeUp 0.5s ease;
+}
+
+.popup-message.invalidLength,
+.popup-message.invalidId,
+.popup-message.error {
+  background-color: #ff4d4f;
+  color: white;
+}
+
+.popup-message.success {
+  background-color: #28a745;
+  color: white;
 }
