@@ -11,19 +11,24 @@ function App() {
     setErrorMessage('');
   };
 
+  const isValidMeetCode = (code) => {
+    // Checks for format: 12 characters including exactly two hyphens, like "abc-def-ghij"
+    const regex = /^[a-zA-Z0-9]{3}-[a-zA-Z0-9]{3}-[a-zA-Z0-9]{4}$/;
+    return regex.test(code);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (meetCode.length !== 10) {
+    if (!isValidMeetCode(meetCode)) {
       setStatus('error');
-      setErrorMessage('Invalid meeting code! The meeting code must be 10 characters.');
+      setErrorMessage('Invalid meeting code! Format must be like "abc-def-ghij" with exactly two hyphens.');
       return;
     }
 
     setStatus('loading');
 
     try {
-      // Using fetch instead of axios
       const response = await fetch('/api/deploy-bot', {
         method: 'POST',
         headers: {
@@ -31,11 +36,11 @@ function App() {
         },
         body: JSON.stringify({ meetCode }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      
+
       const data = await response.json();
       console.log(data);
       setStatus('success');
@@ -51,26 +56,26 @@ function App() {
       <div style={styles.formContainer}>
         <h1 style={styles.title}>TeamDigest</h1>
         <h2 style={styles.subtitle}>Deploy SCRIBE</h2>
-        
+
         <form onSubmit={handleSubmit} style={styles.form}>
           <input
             type="text"
             value={meetCode}
             onChange={handleCodeChange}
-            placeholder="Enter Google Meet Code"
+            placeholder='e.g., "abc-def-ghij"'
             required
             style={styles.input}
           />
-          
-          <button 
+
+          <button
             type="submit"
             disabled={status === 'loading'}
-            style={status === 'loading' ? {...styles.button, ...styles.buttonDisabled} : styles.button}
+            style={status === 'loading' ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
           >
             {status === 'loading' ? 'Deploying...' : 'Deploy Bot'}
           </button>
         </form>
-        
+
         {status === 'error' && (
           <div style={styles.errorAlert}>
             <div style={styles.alertIcon}>⚠️</div>
@@ -80,7 +85,7 @@ function App() {
             </div>
           </div>
         )}
-        
+
         {status === 'success' && (
           <div style={styles.successAlert}>
             <div style={styles.alertIcon}>✓</div>
