@@ -193,6 +193,17 @@
   outline: none;
 }
 
+.fade-down-init {
+  opacity: 0;
+  transform: translateY(-50px);
+  transition: opacity 1.8s ease, transform 1.8s ease;
+}
+
+.fade-down {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Error Styling */
 .error-message {
   margin-top: 20px;

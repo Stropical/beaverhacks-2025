@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function App() {
   const [meetCode, setMeetCode] = useState('');
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
+  const [fadeIn, setFadeIn] = useState(false);
+
+  useEffect(() => {
+    setFadeIn(true);
+  }, []);
+
 
   const handleCodeChange = (event) => {
     setMeetCode(event.target.value);
@@ -53,7 +59,7 @@ function App() {
 
   return (
     <div style={styles.mainContainer}>
-      <div style={styles.formContainer}>
+      <div style={styles.formContainer} className={`fade-down-init ${fadeIn ? 'fade-down' : ''}`}>
         <h1 style={styles.title}>TeamDigest</h1>
         <h2 style={styles.subtitle}>Deploy SCRIBE</h2>
 
