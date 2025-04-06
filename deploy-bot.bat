@@ -1,0 +1,1 @@
+python bot/join_google_meet.py %1

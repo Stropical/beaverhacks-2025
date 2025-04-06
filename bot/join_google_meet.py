@@ -13,8 +13,8 @@ import os
 import tempfile
 from dotenv import load_dotenv
 import logging
-from upload_and_webhook import upload_file_to_bucket, gsi
-import sys 
+from upload_and_webhook import upload_file_to_bucket, transcribe_audio
+import sys
 from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 class JoinGoogleMeet:
-    def __init__(self):
+    def __init__(self, meet_code):  # Changed signature
         self.mail_address = os.getenv('EMAIL_ID')
         self.password = os.getenv('EMAIL_PASSWORD')
         self.join_name = os.getenv('JOIN_NAME', 'Bot')
-        self.meet_code = os.getenv('MEET_CODE', '')
+        self.meet_code = meet_code  # Use argument instead of env var
         # create chrome instance with notifications blocked
         opt = Options()
         opt.add_argument('--disable-blink-features=AutomationControlled')
@@ -76,7 +76,7 @@ class JoinGoogleMeet:
     def joinMeeting(self):
         logger.info("Navigating to Google Meet and waiting for meeting code input")
         # Go to Google Meet
-        self.driver.get('https://meet.google.com/')
+        self.driver.get('https://meet.google.com/landing')
         
         # Wait for the code input field to be clickable
         code_input = WebDriverWait(self.driver, 20).until(
@@ -98,13 +98,33 @@ class JoinGoogleMeet:
         time.sleep(1)
         code_input.clear()
         time.sleep(1)
-        # Send meeting code character by character
-        for char in self.meet_code:
-            code_input.send_keys(char)
-            time.sleep(0.1)
+        # Instead of sending keys character by character, set the value directly to avoid scrolling
+        self.driver.execute_script("arguments[0].value = arguments[1];", code_input, self.meet_code)
+        self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", code_input)
         logger.info(f"Entered meeting code: {self.meet_code}")
         time.sleep(0.8)
         code_input.send_keys(Keys.ENTER)
+        
+        
+        # Wait for the Join button after entering the code
+        try:
+            join_button_after_code = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Join')]/ancestor::button"))
+            )
+            logger.info("Found Join button after entering code")
+            join_button_after_code.click()
+            logger.info("Clicked Join button")
+        except TimeoutException:
+            logger.info("No initial Join button found, continuing to direct join")
+        except Exception as e:
+            logger.error(f"Error clicking Join button: {str(e)}")
+            # Try JavaScript click as fallback
+            try:
+                join_button = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Join')]/ancestor::button")
+                self.driver.execute_script("arguments[0].click();", join_button)
+                logger.info("Used JavaScript to click Join button")
+            except Exception as inner_e:
+                logger.error(f"JavaScript click also failed: {str(inner_e)}")
         
         # Wait for page to load
         time.sleep(8)
@@ -163,6 +183,12 @@ class JoinGoogleMeet:
 
 def main():
     logger.info("Starting main execution")
+    # Retrieve meet_code from command-line arguments
+    if len(sys.argv) < 2:
+        logger.error("Usage: python join_google_meet.py <meeting_code>")
+        sys.exit(1)
+    meet_code = sys.argv[1]
+    
     temp_dir = tempfile.mkdtemp()
     
     # Generate name based on current time
@@ -172,7 +198,7 @@ def main():
     audio_path = os.path.join(temp_dir, file_name)
     duration = int(os.getenv('RECORDING_DURATION', 60))
     
-    obj = JoinGoogleMeet()
+    obj = JoinGoogleMeet(meet_code)  # Pass meet_code from argument
     obj.Glogin()
     obj.joinMeeting()
     # Start recording using AudioRecorder's start/stop methods (assumed to exist)
@@ -184,10 +210,8 @@ def main():
     recorder.stop_recording()
     logger.info("Recording stopped because you're the last person in the call")
     
-    
-    
     # GOOGLE CLOUD STORAGE UPLOAD
-        # Fetch required configuration from environment variables
+    # Fetch required configuration from environment variables
     bucket_name = os.getenv('BUCKET_NAME')
     webhook_url = os.getenv('WEBHOOK_URL')
     
@@ -202,10 +226,6 @@ def main():
     
     # Call the webhook with basic payload information
     transcribe_audio(gsi, language_code="en-US")
-    
-    
-
-
 
 # call the main function
 if __name__ == "__main__":

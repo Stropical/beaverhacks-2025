@@ -26,9 +26,9 @@ function App() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!isValidMeetCode(meetCode)) {
+    if (meetCode.length !== 12) {
       setStatus('error');
-      setErrorMessage('Invalid meeting code! Format must be like "abc-def-ghij" with exactly two hyphens.');
+      setErrorMessage('Invalid meeting code! The meeting code must be 12 characters including dashes.');
       return;
     }
 

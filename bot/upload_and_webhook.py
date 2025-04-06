@@ -38,10 +38,15 @@ def transcribe_audio(gcs_uri, language_code="en-US"):
     # Configure the request with multi-channel support
     audio = speech.RecognitionAudio(uri=gcs_uri)
     config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # Specify your audio encoding
+        sample_rate_hertz=44100,  # Set to your audio’s sample rate
         language_code=language_code,
         enable_automatic_punctuation=True,
         audio_channel_count=2,
         enable_separate_recognition_per_channel=True,
+        use_enhanced=True,  # Use enhanced models for better accuracy
+        model="video",  # Choose a model appropriate for your content
+        speech_contexts=[speech.SpeechContext(phrases=["Jira", "domain-specific", "terms"])]
     )
     
     # Perform the transcription
@@ -75,8 +80,10 @@ def transcribe_audio(gcs_uri, language_code="en-US"):
             # Check if request was successful
             if response.status_code >= 200 and response.status_code < 300:
                 logger.info(f"Transcript successfully sent to webhook. Status code: {response.status_code}")
+                logger.info(f"Response content: {response.content}")
             else:
-                logger.error(f"Failed to send transcript to webhook. Status code: {response.content           b b  bs}")
+                logger.error(f"Failed to send transcript to webhook. Status code: {response.status_code}")
+                logger.info(f"Response content: {response.content}")
         else:
             logger.warning("WEBHOOK_URL not configured. Skipping webhook notification.")
     except Exception as e:
@@ -92,4 +99,4 @@ if __name__ == "__main__":
     # Transcribe the audio file
     transcription = transcribe_audio(gcs_uri)
     print("Transcription:", transcription)
-    
+
