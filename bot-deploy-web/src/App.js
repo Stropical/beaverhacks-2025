@@ -22,7 +22,7 @@ function App() {
     // Check for 11-character length and exactly 2 hyphens
     if (meetCode.length !== 12 || hyphenCount !== 2) {
       setStatus('invalidFormat');
-      setMessage('Invalid meeting code! Must be 11 characters and contain exactly 2 hyphens.');
+      setMessage('Invalid meeting code! Must be 12 characters and contain exactly 2 hyphens.');
       return;
     }
 
