@@ -13,7 +13,7 @@ import os
 import tempfile
 from dotenv import load_dotenv
 import logging
-from upload_and_webhook import upload_file_to_bucket, call_webhook
+from upload_and_webhook import upload_file_to_bucket, gsi
 import sys 
 from datetime import datetime
 
@@ -198,14 +198,12 @@ def main():
     destination_blob_name = os.path.basename(audio_path)
     
     # Upload the file
-    upload_file_to_bucket(audio_path, bucket_name, destination_blob_name)
+    gsi = upload_file_to_bucket(audio_path, bucket_name, destination_blob_name)
     
     # Call the webhook with basic payload information
-    payload = {
-        "file": destination_blob_name,
-        "bucket": bucket_name
-    }
-    call_webhook(webhook_url, payload)
+    transcribe_audio(gsi, language_code="en-US")
+    
+    
 
 
 
