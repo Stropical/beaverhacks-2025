@@ -1,81 +1,240 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
-import logo from './logo.svg';
 
 function App() {
   const [meetCode, setMeetCode] = useState('');
-  const [message, setMessage] = useState('');
-  const [status, setStatus] = useState(null); // null, "success", "invalidFormat", "invalidId", "error"
+  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleCodeChange = (event) => {
     setMeetCode(event.target.value);
-    setStatus(null);
-    setMessage('');
+    setStatus('idle');
+    setErrorMessage('');
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const hyphenCount = (meetCode.match(/-/g) || []).length;
-
-    // Check for 11-character length and exactly 2 hyphens
-    if (meetCode.length !== 12 || hyphenCount !== 2) {
-      setStatus('invalidFormat');
-      setMessage('Invalid meeting code! Must be 12 characters and contain exactly 2 hyphens.');
+    if (meetCode.length !== 10) {
+      setStatus('error');
+      setErrorMessage('Invalid meeting code! The meeting code must be 10 characters.');
       return;
     }
 
-    try {
-      // Check if meeting is valid
-      const checkRes = await axios.get(`/api/check-meeting/${meetCode}`);
-      if (!checkRes.data.valid) {
-        setStatus('invalidId');
-        setMessage('Invalid meeting ID! No such meeting found.');
-        return;
-      }
+    setStatus('loading');
 
-      // If valid, deploy the bot
-      const deployRes = await axios.post('/api/deploy-bot', { meetCode });
-      console.log(deployRes.data);
+    try {
+      // Using fetch instead of axios
+      const response = await fetch('/api/deploy-bot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ meetCode }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      console.log(data);
       setStatus('success');
-      setMessage('Bot deployed successfully!');
     } catch (error) {
-      console.error('Error during deployment:', error);
+      console.error('Error deploying bot:', error);
       setStatus('error');
-      setMessage('An error occurred. Please try again.');
+      setErrorMessage('Failed to deploy bot. Please try again.');
     }
   };
 
   return (
-    <div className={`App ${status === 'success' ? 'fade-up' : ''}`}>
-      <header className="App-header">
-        <h1 className="Project-title">TeamDigest</h1>
-        <img src={logo} className="App-logo" alt="logo" />
-        <h1 className="App-title">Deploy SCRIBE here</h1>
-
-        <form onSubmit={handleSubmit} className="App-form">
+    <div style={styles.mainContainer}>
+      <div style={styles.formContainer}>
+        <h1 style={styles.title}>TeamDigest</h1>
+        <h2 style={styles.subtitle}>Deploy SCRIBE</h2>
+        
+        <form onSubmit={handleSubmit} style={styles.form}>
           <input
             type="text"
             value={meetCode}
             onChange={handleCodeChange}
             placeholder="Enter Google Meet Code"
             required
-            className="App-input"
+            style={styles.input}
           />
-          <button className="App-button" type="submit">
-            Deploy Bot
+          
+          <button 
+            type="submit"
+            disabled={status === 'loading'}
+            style={status === 'loading' ? {...styles.button, ...styles.buttonDisabled} : styles.button}
+          >
+            {status === 'loading' ? 'Deploying...' : 'Deploy Bot'}
           </button>
         </form>
-
-        {status && (
-          <div className={`popup-message ${status}`}>
-            <p>{message}</p>
+        
+        {status === 'error' && (
+          <div style={styles.errorAlert}>
+            <div style={styles.alertIcon}>⚠️</div>
+            <div>
+              <div style={styles.alertTitle}>Error</div>
+              <div style={styles.alertDescription}>{errorMessage}</div>
+            </div>
           </div>
         )}
-      </header>
+        
+        {status === 'success' && (
+          <div style={styles.successAlert}>
+            <div style={styles.alertIcon}>✓</div>
+            <div>
+              <div style={styles.alertTitle}>Success</div>
+              <div style={styles.alertDescription}>Bot successfully deployed!</div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+// Inline styles object
+const styles = {
+  mainContainer: {
+    display: 'flex',
+    minHeight: '100vh',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '2rem',
+    background: 'linear-gradient(to bottom right, #6366f1, #a855f7, #ec4899)',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: '28rem',
+    backgroundColor: 'white',
+    borderRadius: '1.5rem',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    padding: '2rem',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease',
+    ':hover': {
+      transform: 'translateY(-5px)',
+      boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.3)',
+    },
+  },
+  title: {
+    fontSize: '3rem',
+    fontWeight: '900',
+    marginBottom: '4rem',
+    textAlign: 'center',
+    background: 'linear-gradient(to right, #6366f1, #a855f7, #ec4899)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    color: 'transparent',
+    transition: 'transform 0.3s ease',
+    ':hover': {
+      transform: 'scale(1.05)',
+    },
+  },
+  subtitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    marginBottom: '1.2rem',
+    textAlign: 'center',
+    color: '#1f2937',
+    transition: 'color 0.3s ease',
+    ':hover': {
+      color: '#6366f1',
+    },
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem',
+  },
+  input: {
+    width: '100%',
+    fontSize: '1.125rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.75rem',
+    border: '1px solid #d1d5db',
+    color: '#1f2937',
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+    ':hover': {
+      borderColor: '#a855f7',
+      boxShadow: '0 0 0 2px rgba(168, 85, 247, 0.2)',
+    },
+    ':focus': {
+      borderColor: '#6366f1',
+      boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.3)',
+    },
+  },
+  button: {
+    width: '100%',
+    fontSize: '1.125rem',
+    padding: '1.5rem',
+    borderRadius: '0.75rem',
+    background: 'linear-gradient(to right, #6366f1, #a855f7, #ec4899)',
+    color: 'white',
+    fontWeight: '600',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.3s ease',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.5)',
+    },
+    ':active': {
+      transform: 'translateY(1px)',
+    },
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+    cursor: 'not-allowed',
+  },
+  errorAlert: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginTop: '1.5rem',
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #fecaca',
+    color: '#b91c1c',
+    transition: 'transform 0.2s ease',
+    ':hover': {
+      transform: 'scale(1.02)',
+    },
+  },
+  successAlert: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginTop: '1.5rem',
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #dcfce7',
+    color: '#166534',
+    transition: 'transform 0.2s ease',
+    ':hover': {
+      transform: 'scale(1.02)',
+    },
+  },
+  alertIcon: {
+    fontSize: '1.25rem',
+    lineHeight: '1.25rem',
+  },
+  alertTitle: {
+    fontWeight: '600',
+    fontSize: '0.875rem',
+    marginBottom: '0.25rem',
+  },
+  alertDescription: {
+    fontSize: '0.875rem',
+  },
+};
 
 export default App;

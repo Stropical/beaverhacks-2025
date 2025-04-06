@@ -76,7 +76,7 @@ def transcribe_audio(gcs_uri, language_code="en-US"):
             if response.status_code >= 200 and response.status_code < 300:
                 logger.info(f"Transcript successfully sent to webhook. Status code: {response.status_code}")
             else:
-                logger.error(f"Failed to send transcript to webhook. Status code: {response.status_code}")
+                logger.error(f"Failed to send transcript to webhook. Status code: {response.content           b b  bs}")
         else:
             logger.warning("WEBHOOK_URL not configured. Skipping webhook notification.")
     except Exception as e:
