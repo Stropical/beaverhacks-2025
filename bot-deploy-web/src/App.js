@@ -61,7 +61,7 @@ function App() {
     <div style={styles.mainContainer}>
       <div style={styles.formContainer} className={`fade-down-init ${fadeIn ? 'fade-down' : ''}`}>
         <h1 style={styles.title}>TeamDigest</h1>
-        <h2 style={styles.subtitle}>Deploy SCRIBE</h2>
+        <h2 style={styles.subtitle}>Deploy Scribe</h2>
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <input
